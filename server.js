@@ -14,13 +14,19 @@ const twilioClient = twilio(
 const TWILIO_PHONE = process.env.TWILIO_PHONE_NUMBER;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: ['https://russellcolevop.github.io', 'http://localhost:3000', 'http://localhost:5173'],
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: false
+}));
+app.options('*', cors());
 app.use(express.json());
 
 // In-memory session store (swap for a DB in production)
 const sessions = new Map();
 
-// ─── Health check ───
+// âââ Health check âââ
 app.get('/', (req, res) => {
   res.json({
     service: 'DontForget SMS Backend',
@@ -29,7 +35,7 @@ app.get('/', (req, res) => {
   });
 });
 
-// ─── Register a guest session ───
+// âââ Register a guest session âââ
 // Called when a guest enters their phone number and selects items
 app.post('/api/sessions', (req, res) => {
   const { phone, items, room, hotel } = req.body;
@@ -56,7 +62,7 @@ app.post('/api/sessions', (req, res) => {
     active: true
   });
 
-  console.log(`[SESSION] Created ${sessionId} for ${normalizedPhone} — ${items.length} items`);
+  console.log(`[SESSION] Created ${sessionId} for ${normalizedPhone} â ${items.length} items`);
 
   res.json({
     sessionId,
@@ -64,7 +70,7 @@ app.post('/api/sessions', (req, res) => {
   });
 });
 
-// ─── Send welcome text with app link ───
+// âââ Send welcome text with app link âââ
 // Called by hotel front desk system when guest checks in
 app.post('/api/send-link', (req, res) => {
   const { phone, room, hotel, appUrl } = req.body;
@@ -83,7 +89,7 @@ app.post('/api/send-link', (req, res) => {
   const link = appUrl || 'https://russellcolevop.github.io/dontforget-app/';
 
   const message = `Welcome to ${hotelName}! ` +
-    `Never forget your belongings — set a quick reminder for Room ${roomNum}: ${link}`;
+    `Never forget your belongings â set a quick reminder for Room ${roomNum}: ${link}`;
 
   twilioClient.messages.create({
     body: message,
@@ -91,7 +97,7 @@ app.post('/api/send-link', (req, res) => {
     to: normalizedPhone
   })
   .then(msg => {
-    console.log(`[LINK] Sent welcome SMS to ${normalizedPhone} — SID: ${msg.sid}`);
+    console.log(`[LINK] Sent welcome SMS to ${normalizedPhone} â SID: ${msg.sid}`);
     res.json({ success: true, messageSid: msg.sid });
   })
   .catch(err => {
@@ -100,7 +106,7 @@ app.post('/api/send-link', (req, res) => {
   });
 });
 
-// ─── Trigger reminder SMS ───
+// âââ Trigger reminder SMS âââ
 // Called by the frontend when geofence is breached
 app.post('/api/remind', (req, res) => {
   const { sessionId, phone, items, room, hotel } = req.body;
@@ -145,7 +151,7 @@ app.post('/api/remind', (req, res) => {
     to: targetPhone
   })
   .then(msg => {
-    console.log(`[REMIND] SMS sent to ${targetPhone} — SID: ${msg.sid}`);
+    console.log(`[REMIND] SMS sent to ${targetPhone} â SID: ${msg.sid}`);
     res.json({ success: true, messageSid: msg.sid });
   })
   .catch(err => {
@@ -154,7 +160,7 @@ app.post('/api/remind', (req, res) => {
   });
 });
 
-// ─── Get session status ───
+// âââ Get session status âââ
 app.get('/api/sessions/:id', (req, res) => {
   const session = sessions.get(req.params.id);
   if (!session) {
@@ -170,7 +176,7 @@ app.get('/api/sessions/:id', (req, res) => {
   });
 });
 
-// ─── Deactivate session (guest checked out) ───
+// âââ Deactivate session (guest checked out) âââ
 app.delete('/api/sessions/:id', (req, res) => {
   if (sessions.has(req.params.id)) {
     sessions.get(req.params.id).active = false;
@@ -181,7 +187,7 @@ app.delete('/api/sessions/:id', (req, res) => {
   }
 });
 
-// ─── Phone number normalization ───
+// âââ Phone number normalization âââ
 function normalizePhone(phone) {
   // Strip everything except digits and leading +
   let cleaned = phone.replace(/[^\d+]/g, '');
@@ -202,18 +208,18 @@ function normalizePhone(phone) {
   return null; // Invalid
 }
 
-// ─── Start server ───
+// âââ Start server âââ
 app.listen(PORT, () => {
   console.log(`
-  ╔═══════════════════════════════════════╗
-  ║   DontForget SMS Backend              ║
-  ║   Running on port ${PORT}                ║
-  ║                                       ║
-  ║   Endpoints:                          ║
-  ║   POST /api/sessions   — register     ║
-  ║   POST /api/send-link  — welcome SMS  ║
-  ║   POST /api/remind     — reminder SMS ║
-  ║   GET  /api/sessions/:id — status     ║
-  ╚═══════════════════════════════════════╝
+  âââââââââââââââââââââââââââââââââââââââââ
+  â   DontForget SMS Backend              â
+  â   Running on port ${PORT}                â
+  â                                       â
+  â   Endpoints:                          â
+  â   POST /api/sessions   â register     â
+  â   POST /api/send-link  â welcome SMS  â
+  â   POST /api/remind     â reminder SMS â
+  â   GET  /api/sessions/:id â status     â
+  âââââââââââââââââââââââââââââââââââââââââ
   `);
 });
